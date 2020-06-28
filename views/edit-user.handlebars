@@ -1,0 +1,320 @@
+<main>
+    <div class="container" id='userUpdateForm'>
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card border-2 rounded-lg mt-5">
+                    <div class="card-header">
+                        <h3 class="text-center font-weight-light my-4">
+                            Datos del perfil
+                        </h3>
+                    </div>
+
+                    <div class="card-body">
+                        <form method='post'>
+                            <div v-if="error" class="form-group">
+                                <span class='medium text-danger'>\{{ error }}</span>
+                            </div>
+                            
+                            <div class="form-group row">
+                                <label for="inputUsername" class="col-4 col-form-label font-weight-bold">Username:</label>
+                                <div class="col-8">
+                                    <span>\{{ username }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group row">
+                                <label for="inputEmail" class="col-4 col-form-label font-weight-bold">Email:</label>
+                                <div class="col-8">
+                                    <span>\{{ email }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group row">
+                                <label for="inputName" class="col-4 col-form-label font-weight-bold">Nombre completo:</label>
+                                <div class="col-8">
+                                    <input v-if="editMode" type="text" class="form-control" id="inputName" v-model="name">
+                                    <span v-else>\{{ name }}</span>
+                                </div>
+                            </div>
+                            
+
+                            {{#if isNotAdmin}}
+                            <my-datepicker-alternative
+                                title="Fecha de nacimiento:"
+                                parent-css="form-group row"
+                                v-model="birthdate"
+                                :edit-mode="editMode"
+                            ></my-datepicker-alternative>
+
+                            <div class="form-group row">
+                                <label for="inputDescription" class="col-4 col-form-label font-weight-bold">Descripción del perfil:</label>
+                                <div class="col-8">
+                                    <textarea v-if="editMode" class='form-control' id='inputDescription' v-model="description"></textarea>
+                                    <span v-else>\{{ description }}</span>
+                                </div>
+                            </div>
+                            {{/if}}
+
+                            {{#if isCandidate}}
+                            <my-skillset 
+                                title='Habilidades/skills'
+                                parentcss='form-group row'
+                                labelcss=' font-weight-bold'
+                                :skillset='skills'
+                                :editable='editMode'
+                                v-on:skills-changed="skills = $event"
+                            ></my-skillset>
+
+                            <div class="form-group row">
+                                <label class="col-4 col-form-label font-weight-bold">
+                                    Ubicación:
+                                </label>
+                                <div v-if="editMode" class="col-8">
+                                    <input type="text" class="form-control mb-2" v-model="location.country" placeholder='País'>
+                                    <input type="text" class="form-control mb-2" v-model="location.state" placeholder='Provincia'>
+                                    <input type="text" class="form-control mb-2" v-model="location.city" placeholder='Ciudad'>
+                                </div>
+                                <div class="col-8" v-else>
+                                    \{{
+                                        [location.country, location.state, location.city]
+                                            .filter(v => v.length > 0)
+                                            .join(' - ')
+                                    }}
+                                </div>
+                            </div>
+
+                            {{#if isOwner}}
+                            <div class="form-group row">
+                                <label class="col-4 col-form-label font-weight-bold">C.V.:</label>
+                                <div class="col-8" v-if="editMode">
+                                    <input type="file" id='cvSelector'>
+                                </div>
+                                <div class="col-8" v-else>
+                                    <a v-if="cvfilename.length" :href="'/downloads/cv/?file=' + cvfilename" class="btn btn-link pl-0">
+                                        Descargar
+                                    </a>
+                                    <i v-else>No se ha subido un archivo aun.</i>
+                                </div>
+                            </div>
+                            {{/if}}
+
+                            {{/if}}
+
+                        </form>
+                    </div>
+
+                    {{#if isOwner}}
+                    <div class="card-footer text-center">
+                        <div class="small d-flex justify-content-around">
+                            <button data-toggle='modal' data-target='#changePassModal' class='btn btn-link'>Cambiar mi contraseña</button>
+                            <button class='text-danger btn btn-link' @click="editMode = true" v-if="! editMode">Editar</button>
+                            <button v-if="editMode && ! spinnerPresent" class='text-success btn btn-link' @click="sendNewData()">
+                                Guardar cambios
+                            </button>
+                            <div v-if="spinnerPresent" class="spinner-border" role="status">
+                                <span class="sr-only">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                    {{/if}}
+
+                </div>
+
+                {{#if isOwner}}
+                {{!-- modal - delete change password --}}
+                <div class="modal fade" id="changePassModal" tabindex="-1" role="dialog" aria-labelledby="changePass" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h3>Cambiar mi contraseña</h3>
+                            </div>
+                            <div class="modal-body">
+                                <div v-if="error" class="form-group">
+                                    <span class='medium text-danger'>\{{ error }}</span>
+                                </div>
+
+                                <div class="form-group row">
+                                    <label for="inputCurrentPass" class="col-4 col-form-label font-weight-bold">Contraseña actual</label>
+                                    <div class="col-8">
+                                        <input class="form-control" id="inputCurrentPass" type='password' v-model="passwordData.oldPassword">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group row">
+                                    <label for="inputNewPass" class="col-4 col-form-label font-weight-bold">Nueva Contraseña</label>
+                                    <div class="col-8">
+                                        <input class="form-control" id="inputNewPass" type='password' v-model="passwordData.newPassword">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group row">
+                                    <label for="inputConfirmPass" class="col-4 col-form-label font-weight-bold">Confirmar Contraseña</label>
+                                    <div class="col-8">
+                                        <input class="form-control" id="inputConfirmPass" type='password' v-model="passwordData.confirmation">
+                                    </div>
+                                </div>
+
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal" @click="resetPasswordData()">
+                                    Cancelar
+                                </button>
+                                <div v-if="spinnerPresent" class="spinner-border" role="status">
+                                    <span class="sr-only">Loading...</span>
+                                </div>
+                                <button v-else type="button" class="btn btn-primary" @click="sendNewPassword()">
+                                    Guardar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {{/if}}
+
+            </div>
+        </div>
+
+        <div class="row justify-content-center my-2">
+            <div class="col-lg-8" id='alertsContainer'></div>
+        </div>
+    </div>
+</main>
+<script>
+
+    var app = new Vue({
+        el: '#userUpdateForm',
+        data: {
+            username: "{{ userData.username }}",
+            email: '{{ userData.email }}',
+            name: '{{ userData.user.name }}',
+            birthdate: {{#if isNotAdmin}}'{{ userData.user.birthdate }}'{{else}}''{{/if}},
+            description: {{#if isNotAdmin}}"{{{ userData.user.profileDescription }}}"{{else}}''{{/if}},
+            skills: [
+                {{#if isCandidate}}
+                    {{#each userData.user.skills}}'{{this}}',{{/each}}
+                {{/if}}
+            ],
+            location: {
+                country: {{#if isCandidate}}'{{ userData.user.location.country }}'{{else}}''{{/if}},
+                state: {{#if isCandidate}}'{{ userData.user.location.state }}'{{else}}''{{/if}},
+                city: {{#if isCandidate}}'{{ userData.user.location.city }}'{{else}}''{{/if}}
+            },
+            cvfilename: {{#if isCandidate}}'{{userData.user.cvfilename}}'{{else}}''{{/if}},
+
+            error: '',
+            editMode: false,
+            spinnerPresent: false,
+            passwordData: {
+                oldPassword: '',
+                newPassword: '',
+                confirmation: ''
+            }
+        },
+
+        methods: {
+            {{#if isOwner}}
+
+            sendNewData: function () {
+                // activate spinner
+                this.spinnerPresent = true;
+
+                // prepare form data
+                var dd = new FormData();
+                dd.set('name', this.name);
+                dd.set('birthdate', this.birthdate);
+                dd.set('description', this.description);
+                dd.set('skills', this.skills.join(','));
+                dd.append('location', JSON.stringify(this.location));
+                
+                if ($('#cvSelector').length) {
+                    dd.append('cvfile', $("#cvSelector")[0].files[0]);
+                }
+
+                axios({
+                    method: 'post',
+                    url: `/api/users/${this.username}`,
+                    data: dd,
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                })
+                    .then((response) => {
+                        if (response.data.newfile) {
+                            this.cvfilename = response.data.newfile;
+                        }
+
+                        appendAlert({
+                            element: '#alertsContainer',
+                            type: 'success',
+                            message: 'Datos actualizados con éxito',
+                            fixed: false,
+                            timeout: 2000
+                        });
+                    })
+                    .catch(err => {
+                        this.error = err.message;
+                    })
+                    .then(() => {
+                        this.spinnerPresent = false;
+                        this.editMode = false;
+                    });
+            },
+
+            resetPasswordData: function () {
+                for (var prop in this.passwordData) {
+                    this.passwordData[prop] = '';
+                }
+            },
+
+            sendNewPassword: function () {
+                var pass = this.passwordData;
+                this.error = '';
+                if (pass.newPassword.length < 5) {
+                    this.error = 'Su contraseña no es lo suficientemente larga';
+                    return;
+                }
+                if (pass.newPassword !== pass.confirmation) {
+                    this.error = 'Las contraseñas no coinciden';
+                    return;
+                }
+
+                this.spinnerPresent = true;
+                axios.put(`/api/users/${this.username}/password`, pass)
+                    .then(() => {
+                        appendAlert({
+                            element: '#alertsContainer',
+                            type: 'success',
+                            message: 'Su contraseña ha sido actualizada',
+                            fixed: false,
+                            timeout: 2000
+                        });
+                    })
+                    .catch(err => {
+                        appendAlert({
+                            element: '#alertsContainer',
+                            type: 'danger',
+                            message: 'Su contraseña no pudo ser actualizada',
+                            fixed: false,
+                            timeout: 2000
+                        });
+                    })
+                    .then(() => {
+                        app.spinnerPresent = false;
+                        app.resetPasswordData();
+                        $('#changePassModal').modal('hide');
+                    });
+            }
+            {{/if}}
+        },
+
+        mounted () {
+            var dd = this.birthdate
+                ? moment(new Date(this.birthdate))
+                : moment();
+            this.birthdate = dd.format('DD/MM/YYYY');
+        },
+
+    });
+
+
+</script>

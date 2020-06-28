@@ -1,0 +1,316 @@
+<main>
+    <div class="container-fluid" id='jobsContainer'>
+        <div class="row">
+
+            {{!-- contenido principal --}}
+            <div class="col-xl-12 mt-4">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        
+                        <h3>{{#recruiter}}Mis {{/recruiter}}Anuncios</h3>
+                        <hr>
+                        {{!-- pills --}}
+                        <div class='d-flex'>
+                            <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
+                                <li class="nav-item">
+                                    <a class="nav-link active btn btn-outline-dark mr-2" id="pills-list-tab" data-toggle="pill" href="#pills-list" role="tab" aria-controls="pills-list" aria-selected="false">
+                                        Ver
+                                    </a>
+                                </li>
+
+                                {{#recruiter}}
+                                <li class="nav-item">
+                                    <a class="nav-link btn btn-outline-dark" id="pills-new-job-tab" data-toggle="pill" href="#pills-new-job" role="tab" aria-controls="pills-new-job" aria-selected="true">
+                                        Añadir nuevo
+                                    </a>
+                                </li>
+                                {{/recruiter}}
+                            </ul>
+
+                        </div>
+                    </div>
+
+                    <div class="card-body p-0">
+
+                        <div class="tab-content" id="pills-tabContent">
+                            
+                            {{!-- jobs table --}}
+                            <div class="tab-pane fade show active" id="pills-list" role="tabpanel" aria-labelledby="pills-list-tab" v-if="userJobs.length > 0">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                        <th scope="col">Título</th>
+                                        <th scope="col">Fecha de expiración</th>
+                                        <th scope="col">Ubicación</th>
+                                        <th scope="col"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="job in userJobs">
+                                            <td>\{{ job.title }}\{{ getJobState(job) }}</td>
+                                            <td>\{{ job.expirationDate }}</td>
+                                            <td>\{{ job.locationInfo }}</td>
+                                            <td>
+                                                <a :href="'/recruiter/jobs/edit/' + job.id" class="btn btn-link" target="_blank">Detalles</a>
+                                                <a @click="prepareDeletion(job)" class="btn btn-link text-danger">Eliminar</a>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <ul class="pagination justify-content-center" v-if="pagination.total > 1">
+                                    <li class="page-item" v-if="pagination.current > 1">
+                                        <a class="page-link" aria-label="Previous" @click="fetchJobsPage(pagination.current - 1)">
+                                            <span aria-hidden="true">&laquo;</span>
+                                        </a>
+                                    </li>
+                                    <li v-for="num in pageNumbers" :class="'page-item ' + (pagination.current === num ? 'active' : '')">
+                                        <a v-if="pagination.current !== num" class="page-link" @click="fetchJobsPage(num)">
+                                            \{{ num }}
+                                        </a>
+                                        <span v-else class='page-link'>
+                                            \{{num}}
+                                        </span>
+
+                                    </li>
+                                    <li class="page-item" v-if="pagination.current < pagination.total">
+                                        <a class="page-link" aria-label="Next" @click="fetchJobsPage(pagination.current + 1)">
+                                            <span aria-hidden="true">&raquo;</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div class="tab-pane fade show active p-3" id="pills-list" role="tabpanel" aria-labelledby="pills-list-tab" v-else>
+                                <span>Aun no has publicado ninguna oferta laboral.</span>
+                            </div>
+                            
+                            {{#recruiter}}
+                            {{!-- new job form --}}
+                            <div class="tab-pane fade m-3" id="pills-new-job" role="tabpanel" aria-labelledby="pills-new-job-tab">
+                                <form method='post' novalidate=''>
+                                    <div class="form-row m-3">
+                                        <label class="small mb-1" for="inputTitle">Título</label>
+                                        <input :class="'form-control py-4' + (errors.title ? ' is-invalid' : '')" id="inputTitle" type="text" placeholder='Título descriptivo' v-model='newJob.title'/>
+                                        <div class="invalid-feedback" v-if="errors.title">
+                                            \{{errors.title.message}}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-row m-3">
+                                        <label for="inputDescription" class="small mb-1">Descripción</label>
+                                        <textarea id="inputDescription" rows="6" :class="'form-control' + (errors.description ? ' is-invalid' : '')" style='resize: none;' placeholder='Descripción del trabajo' v-model='newJob.description'></textarea>
+                                        <div class="invalid-feedback" v-if="errors.description">
+                                            \{{errors.description.message}}
+                                        </div>
+                                    </div>
+
+                                    <my-skillset 
+                                        parentcss='form-group row m-3'
+                                        title='Habilidades/skills requeridos'
+                                        :skillset="newJob.skills"
+                                        @skills-changed="newJob.skills = $event"
+                                        ref="mySkillset"
+                                    ></my-skillset>
+
+                                    <div class="form-row m-3">
+                                        <label for="locationGroup" class="small mb-1">Ubicación</label>
+
+                                        <div class="input-group" id='locationGroup'>
+                                            <div class="btn-group btn-group-toggle input-group-prepend" data-toggle="buttons">
+                                                <label class="btn btn-info" @click="newJob.isRemote = true">
+                                                    <input type="radio" id="remoteCheck" autocomplete="off"> Remoto
+                                                </label>
+                                                <label class="btn btn-info active" @click="newJob.isRemote = false">
+                                                    <input type="radio" id="onSiteCheck" autocomplete="off" checked > On Site
+                                                </label>
+                                            </div>
+                                            <input type="text" class="form-control" id='inputCountry' placeholder='País' v-model='newJob.location.country' v-bind:disabled='newJob.isRemote'>
+                                            <input type="text" class="form-control" id='inputState' placeholder="Estado/Provincia" v-model='newJob.location.state' v-bind:disabled='newJob.isRemote'>
+                                            <input type="text" class="form-control" id='inputCity' placeholder="Ciudad" v-model='newJob.location.city' v-bind:disabled='newJob.isRemote'>
+                                        </div>
+                                    </div>
+
+                                    <my-datepicker
+                                        parentcss="form-row m-3"
+                                        title='Fecha de expiración'
+                                        inputname='expiration'
+                                        v-model='newJob.expirationDate'
+                                        ref='myDatepicker'
+                                    ></my-datepicker>
+
+                                    <div class="form-row m-3 ">
+                                        <button type='button' class="btn btn-primary btn-lg btn-block" @click.prevent="requestCreation">
+                                            Enviar
+                                        </button>
+                                    </div>
+                                    
+                                </form>
+                            </div>
+                            {{/recruiter}}
+                            
+                        </div>
+                    </div>
+                    
+                </div>
+
+                {{!-- contenedor de alertas --}}
+                <div class="m-3" id='alertsContainer'></div>
+
+            </div>
+
+             {{!-- modal - delete job --}}
+            <div class="modal fade" id="confirmDeletionModal" tabindex="-1" role="dialog" aria-labelledby="confirmDeletionLb" aria-hidden="true" v-if="userJobs.length > 0">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-body">
+                            <h5>¿Eliminar la oferta laboral <i>\{{ jobToDelete.title }}</i>?</h5>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                            <button type="button" class="btn btn-primary" @click="requestDeletionOfJob()">Eliminar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        
+        </div>
+    </div>
+</main>
+
+<script>
+
+    var app = new Vue({
+        el: '#jobsContainer',
+
+        data: {
+            newJob: {
+                title: '',
+                description: '',
+                isRemote: false,
+                skills: [],
+                expirationDate: moment().add(10, 'days').format('DD/MM/YYYY'),
+                location: {
+                    country: '',
+                    state: '',
+                    city: ''
+                }
+            },
+            errors: {},
+            userJobs: [],
+            pagination: {
+                current: 1,
+                total: 1
+            },
+            jobToDelete: {}
+        },
+
+        mounted() {
+            this.fetchJobsPage(1);
+        },
+
+        methods: {
+            resetNewJob: function () {
+                this.newJob.title = '';
+                this.newJob.description = '';
+                this.newJob.isRemote = false;
+                this.newJob.location.country = '';
+                this.newJob.location.state = '';
+                this.newJob.location.city = '';
+                this.$refs.mySkillset.removeAll();
+                this.$refs.myDatepicker.changeTo(moment().add(10, 'days').format('DD/MM/YYYY'));
+                this.errors = {};
+            },
+
+            requestCreation: function () {
+                var data = Object.assign({}, this.newJob)
+                assignProps(data, this.newJob.location, ['country', 'state', 'city']);
+
+                axios.post('/api/jobs/new', data)
+                    .then(result => {
+                        this.resetNewJob();
+                        appendAlert({
+                            element: '#alertsContainer',
+                            type: 'success',
+                            message: 'La oferta ha sido publicada con éxito!',
+                            fixed: false,
+                            timeout: 3
+                        });
+                        this.fetchJobsPage(1);
+                    })
+                    .catch(result => {
+                        this.errors = result.response.data.errors;
+                    });
+            },
+            
+            getJobState: function (job) {
+
+                if (job.fullfilled) {
+                    return " (completado)";
+                }
+
+                var now = moment();
+                var jobExpiration = moment(job.expirationDate, 'DD/MM/YYYY');
+                if (jobExpiration.isBefore(now)) {
+                    return " (caducado)";
+                }
+
+                return "";
+            },
+
+            fetchJobsPage: function (page) {
+                this.pagination.current = page;
+                axios.get('/api/jobs/list?page=' + page)
+                    .then(data => {
+                        this.userJobs = data.data.jobs;
+                        this.pagination.total = data.data.pages;
+                    })
+                    .catch(err => console.log(err));
+            },
+
+            prepareDeletion: function (job) {
+                this.jobToDelete = job;
+                $('#confirmDeletionModal').modal('show');
+            },
+
+            requestDeletionOfJob: function () {
+                axios.delete('/api/jobs/' + this.jobToDelete.id)
+                    .then(result => {
+                        $('#confirmDeletionModal').modal('hide');
+                        this.jobToDelete = {};
+                        appendAlert({
+                            element: '#alertsContainer',
+                            type: 'success',
+                            message: 'La oferta se ha eliminado exitosamente',
+                            fixed: false,
+                            timeout: 3
+                        });
+                        this.fetchJobsPage(1);
+                    })
+                    .catch(err => {
+                        $('#confirmDeletionModal').modal('hide');
+                        appendAlert({
+                            element: '#alertsContainer',
+                            type: 'danger',
+                            message: err,
+                            fixed: false,
+                            timeout: 3
+                        });
+                    });
+            }
+        },
+
+        computed: {
+            pageNumbers: function () {
+                var arr = [];
+                var nn = 1;
+                while (nn <= this.pagination.total) {
+                    arr.push(nn);
+                    nn ++;
+                }
+                return arr;
+            }
+        }
+
+    });
+
+</script>

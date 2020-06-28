@@ -1,0 +1,175 @@
+<main>
+    <div class="container" id='appContainer'>
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card border-2 rounded-lg mt-5">
+                    
+                    {{!-- header --}}
+                    <div class="card-header">
+                        <h3 class="text-center font-weight-light my-4">
+                            Emitir notificación
+                        </h3>
+                    </div>
+
+                    {{!-- body --}}
+                    <div class="card-body">
+
+                        {{#if users }}
+                        <form method='post'>
+                            
+                            <div class="form-group">
+                                <label for="inputDestinatary" class="small">
+                                    Destinatario:
+                                </label>
+                                <select class="form-control" id="inputDestinatary">
+                                    {{#each users}}
+                                    <option value="{{ this._id }}">{{ this.name }}</option>
+                                    {{/each}}
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="inputDescription" class="small">
+                                    Mensaje:
+                                </label>
+                                <textarea rows="5" class="form-control" v-model="message"></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <button class="btn btn-primary" :disabled="messageWithoutBlanks.length === 0" type='submit' @click="notifyUser($event)">
+                                    Enviar
+                                </button>
+                                <button class="btn btn-secondary" type='button' @click="message=''">
+                                    Borrar
+                                </button>
+                            </div>
+
+                        </form>
+                        {{else}}
+                        <span class='font-weight-light'>Todavía no existen usuarios registrados.</span>
+                        {{/if}}
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card border-2 rounded-lg mt-5">
+                   
+                    {{!-- header --}}
+                    <div class="card-header">
+                        <h3 class="text-center font-weight-light my-4">
+                            Notificaciones enviadas
+                        </h3>
+                    </div>
+
+                    <div class="card-body p-0">
+                        <table class="table" v-if="notifications.length > 0">
+                            <thead>
+                                <tr>
+                                <th scope="col" width='20%'>Receptor</th>
+                                <th scope="col">Fecha</th>
+                                <th scope="col" width="40%">Mensaje</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="nn in notifications">
+                                <td><a :href="'/users/edit/' + nn.user.id">\{{ nn.user.name }}</a></td>
+                                <td>\{{ formatDate(nn, 'DD/MM/YYYY HH:mm:ss') }}</td>
+                                <td>\{{ nn.message }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="p-3 font-weight-light" v-else>Aun no se ha enviado ninguna notificación.</div>
+                    </div>
+
+
+                </div>
+            </div>
+        </div>
+
+        {{!-- alerts container --}}
+        <div class="row justify-content-center my-2">
+            <div class="col-lg-8" id='alertsContainer'></div>
+        </div>
+    </div>
+</main>
+
+<script>
+    var app = new Vue({
+        el: '#appContainer',
+
+        data: {
+            message: '',
+            notifications: []
+        },
+
+        mounted() {
+            this.fetchSentNotifications();
+        },
+
+        computed: {
+
+            messageWithoutBlanks: function () {
+                return this.message.replace(/\s/g, '');
+            }
+
+        },
+
+        methods: {
+
+            fetchSentNotifications: function () {
+                axios.get('/api/admin/notifications/sent')
+                    .then(response => this.notifications = response.data)
+                    .catch(err => {
+                        console.error(err);
+                        appendAlert({
+                            element: '#alertsContainer',
+                            type: 'danger',
+                            message: 'Error solicitando las notificaciones',
+                            fixed: false,
+                            timeout: 3
+                        });
+                    });
+            },
+
+            notifyUser: function (evt) {
+                evt.preventDefault();
+                var data = {
+                    user: $('#inputDestinatary').val(),
+                    message: this.message
+                };
+
+                axios.post('/api/admin/notification/new', data)
+                    .then(response => {
+                        appendAlert({
+                            element: '#alertsContainer',
+                            type: 'success',
+                            message: 'Se ha enviado la notificación',
+                            fixed: false,
+                            timeout: 3
+                        });
+                        this.message = "";
+                        this.fetchSentNotifications();
+                    })
+                    .catch(err => {
+                        appendAlert({
+                            element: '#alertsContainer',
+                            type: 'danger',
+                            message: 'No se pudo enviar la notificación',
+                            ficed: false,
+                            timeout: 3
+                        });
+                    });
+            },
+
+            formatDate: function (notification, pattern) {
+                return moment(notification.timestamp).format(pattern);
+            }
+        }
+
+    });
+</script>

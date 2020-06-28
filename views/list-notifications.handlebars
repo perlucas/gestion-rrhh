@@ -1,0 +1,296 @@
+<main>
+    <div class="container-fluid" id='appContainer'>
+        <div class="row">
+
+            {{!-- tabla de notificaciones --}}
+            <div class="col-xl-12 mt-4">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3>Notificaciones recibidas</h3>
+                        <select class="form-control col-5" v-model="showingType">
+                            <option value="all">Todas</option>
+                            <option value="read">Leídas</option>
+                            <option value="non-read">No Leídas</option>
+                        </select>
+                        <div v-show="selectedIndexes.length > 0">
+                            <button type='button' class='btn btn-link text-danger pl-0' data-toggle="modal" data-target="#deleteAllModal">Eliminar seleccionadas</button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <template v-if="notificationsOnFilterCount > 0">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                    <th scope="col" width="40%">Título</th>
+                                    <th scope="col" width='20%'>Fecha</th>
+                                    <th scope="col"></th>
+                                    <th scope="col"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="(nn, index) in notifications" :key="nn.id" @click="switchSelection(index, $event)" :class="notificationRowStyle(index).tr" v-show="checkState(index)">
+                                        <td>\{{ nn.title }}</td>
+                                        <td>\{{ getDate(nn, 'DD/MM/YYYY') }}</td>
+                                        <td>
+                                            <button type='button' :class='notificationRowStyle(index).detailsBtn' data-toggle="modal" data-target="#showNotification" @click="selectForShowing(index)">Ver detalle</button>
+                                        </td>
+                                        <td>
+                                            <button type='button' :class='notificationRowStyle(index).deleteBtn' data-toggle="modal" data-target="#confirmDeletionModal" @click="selectForShowing(index)">Eliminar</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </template>
+                        <h5 class="p-3 m-0 bg-light font-italic" v-else>Aun no existen notificaciones</h5>
+                    </div>
+                </div>
+
+                {{!-- contenedor de alertas --}}
+                <div class="m-3" id='alertsContainer'></div>
+
+            </div>
+
+            {{!-- modals here --}}
+
+            {{!-- details modal --}}
+            <div class="modal fade" id="showNotification" tabindex="-1" role="dialog" aria-labelledby="showNotificationLB" aria-hidden="true" v-if="currentSelected">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Detalles de la notificación</h3>
+                        </div>
+                        <div class="modal-body">
+                            <h5 class='mb-3'>\{{ currentSelected.title }}</h5>
+                            <div class="font-italic my-1" v-html="currentSelected.body">
+                            </div>
+                            <div class='mt-3'>
+                                <i class='fas fa-calendar'></i> \{{ getDate(currentSelected, 'DD/MM/YYYY HH:mm:ss') }}
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                            <button v-if="currentSelected.isRead" type="button" class="btn btn-primary" data-dismiss="modal" @click="markOpened(false)">
+                                Marcar como no leída
+                            </button>
+                            <button v-else type="button" class="btn btn-primary" data-dismiss="modal" @click="markOpened(true)">
+                                Marcar como leída
+                            </button>
+                            <button type="button" class="btn btn-danger"data-dismiss="modal" data-toggle="modal" data-target="#confirmDeletionModal">Eliminar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {{!-- deletion modal --}}
+            <div class="modal fade" id="confirmDeletionModal" tabindex="-1" role="dialog" aria-labelledby="confirmDeletionLb" aria-hidden="true" v-if="currentSelected">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-body">
+                            <h5>¿Eliminar la notificación <i>\{{ currentSelected.title }}</i>?</h5>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                            <button type="button" class="btn btn-danger" data-dismiss="modal" @click="requestDeletionOfOpened()">Eliminar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{!-- delete selected modal --}}
+            <div class="modal fade" id="deleteAllModal" tabindex="-1" role="dialog" aria-labelledby="confirmDeleteAllLB" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-body">
+                            <h5>¿Eliminar las notificaciones seleccionadas?</h5>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                            <button type="button" class="btn btn-danger" data-dismiss="modal" @click="requestDeletionOfSelected()">Eliminar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        
+        </div>
+    </div>
+</main>
+
+<script>
+    var app = new Vue({
+        el: '#appContainer',
+
+        data: {
+            notifications: [],
+
+            selectedIndex: -1,
+
+            selectedIndexes: [],
+
+            showingType: 'all'
+        },
+
+        computed: {
+            currentSelected: function () {
+                if (this.selectedIndex >= 0) {
+                    return this.notifications[this.selectedIndex] || false;
+                }
+                return false;
+            },
+
+            notificationsOnFilterCount: function () {
+                if (this.showingType === 'all') return this.notifications.length;
+                if (this.showingType === 'read') {
+                    var fn = (nn) => nn.isRead;
+                } else {
+                    var fn = (nn) => ! nn.isRead;
+                }
+                return this.notifications.filter(fn).length;
+            }
+        },
+
+        methods: {
+
+            /* API methods */
+
+            fetchNotifications: function () {
+                axios.get('/api/notifications/list')
+                    .then(response => {
+                        this.notifications = response.data;
+                        this.selectedIndex = -1;
+                        this.selectedIndexes = [];
+                        this.showingType = 'all';
+                    })
+                    .catch(err => {
+                        appendAlert({
+                            element: '#alertsContainer',
+                            type: 'danger',
+                            message: err.data,
+                            fixed: false,
+                            timeout: 3
+                        });
+                    });
+            },
+
+            requestDeletion: function (idsArr, successMsg, failMsg) {
+                axios.post('/api/notifications/delete', { ids: idsArr })
+                    .then(response => {
+                        this.fetchNotifications();
+                        appendAlert({
+                            element: '#alertsContainer',
+                            type: 'success',
+                            message: successMsg,
+                            fixed: false,
+                            timeout: 3
+                        });
+                    })
+                    .catch(err => {
+                        appendAlert({
+                            element: '#alertsContainer',
+                            type: 'danger',
+                            message: failMsg,
+                            fixed: false,
+                            timeout: 3
+                        });
+                    });
+            },
+
+            requestDeletionOfOpened: function () {
+                if (this.currentSelected) {
+                    this.requestDeletion(
+                        [this.currentSelected.id],
+                        'Notificación eliminada exitosamente',
+                        'No se pudo eliminar la notificación'
+                    );
+                }
+            },
+
+            requestDeletionOfSelected: function () {
+                if (this.selectedIndexes.length > 0) {
+                    var ids = this.selectedIndexes.map(ii => this.notifications[ii].id);
+                    this.requestDeletion(
+                        ids,
+                        'Notificaciones eliminadas exitosamente',
+                        'No se pudo eliminar las notificaciones'
+                    );
+                }
+            },
+
+            markOpened: function (isRead) {
+                if (this.currentSelected) {
+                    axios.post('/api/notifications/' + this.currentSelected.id + '/mark', {isRead})
+                        .then(response => {
+                            this.fetchNotifications();
+                            appendAlert({
+                                element: '#alertsContainer',
+                                type: 'success',
+                                message: 'Notificación marcada como ' + (isRead ? 'leída' : 'no leída'),
+                                fixed: false,
+                                timeout: 3
+                            });
+                        })
+                        .catch(err => {
+                            appendAlert({
+                                element: '#alertsContainer',
+                                type: 'danger',
+                                message: 'No se pudo completar la operación',
+                                fixed: false,
+                                timeout: 3
+                            });
+                        });
+                }
+            },
+
+            /* Data formatting & presentation methods */
+
+            getDate: function (notification, fmt) {
+                return moment(notification.timestamp).format(fmt);
+            },
+
+            notificationRowStyle: function (index) {
+                if (this.selectedIndexes.includes(index)) {
+                    return {
+                        tr: 'bg-primary text-white',
+                        detailsBtn: 'btn btn-link text-white',
+                        deleteBtn: 'btn btn-danger'
+                    };
+                }
+                return {
+                    tr: '',
+                    detailsBtn: 'btn btn-link',
+                    deleteBtn: 'btn btn-link text-danger'
+                };
+            },
+
+            /* GUI components & widgets interaction */
+
+            selectForShowing: function (index) {
+                this.selectedIndex = index;
+            },
+
+            switchSelection: function (index, evt) {
+                if (evt.target.tagName === 'BUTTON') return;
+                
+                if (this.selectedIndexes.includes(index)) {
+                    var withoutIndex = this.selectedIndexes.filter(v => v !== index);
+                    this.selectedIndexes = withoutIndex;
+                } else {
+                    this.selectedIndexes.push(index);
+                }
+            },
+
+            checkState: function (index) {
+                var nn = this.notifications[index];
+                if (this.showingType === 'all') return true;
+                if (this.showingType === 'read') {
+                    return nn.isRead;
+                } else {
+                    return ! nn.isRead;
+                }
+            }
+        },
+
+        mounted() {
+            this.fetchNotifications();
+        }
+    });
+</script>

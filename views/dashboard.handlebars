@@ -1,0 +1,184 @@
+<main>
+    <div class="container-fluid mt-4" id="appContainer">
+        
+        {{!-- notifications --}}
+        
+        <template v-if="notifications.length">
+        <h2 class='m-3 font-weight-light'>Notificaciones nuevas</h2>
+        <div class="row">
+            <div v-for="(nn, index) in notifications" class="col-xl-3 col-md-6">
+                <div class="card bg-primary text-white mb-4">
+                    <div class='card-header'>
+                        <span class='w-100 float-right'>
+                            <a href='' @click.prevent="markAsRead(nn.id)" class='text-white'><i class="float-right fas fa-times"></i></a>
+                        </span>
+                        <div>\{{ nn.title }}</div>
+                    </div>
+                    <div class='collapse' :id="'body_' + nn.id">
+                        <div class="font-italic small ml-3 mt-2">\{{ printDateTime(nn.timestamp) }}</div>
+                        <div class="card-body" v-html="nn.body"></div>
+                    </div>
+                    <div class="card-footer d-flex align-items-center justify-content-between border-top-0">
+                        <a class="small text-white " data-toggle='collapse' role='button' :href="'#body_' + nn.id" onclick="switchCollapseData(this)">
+                            Ver más
+                        </a>
+                        <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </template>
+
+
+        <div class="row align-items-stretch">
+            {{#admin}}
+            <div class="col-xl-4">
+                <div class="card mb-4 h-100">
+                    <div class="card-body bg-light text-center">
+                        <h2 class='font-weight-light'><span id="firstNumber">0</span> ofertas en búsqueda activa</h2>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4">
+                <div class="card mb-4 h-100">
+                    <div class="card-body bg-light text-center">
+                        <h2 class='font-weight-light'><span id='secondNumber'>0</span> usuarios registrados</h2>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4">
+                <div class="card mb-4 h-100">
+                    <div class="card-body bg-light text-center">
+                        <h2 class='font-weight-light'><span id='thirdNumber'>0</span> postulaciones de candidatos</h2>
+                    </div>
+                </div>
+            </div>
+           {{/admin}}
+            {{#recruiter}}
+            <div class="col-xl-4">
+                <div class="card mb-4 h-100">
+                    <div class="card-body bg-light text-center">
+                        <h2 class='font-weight-light'><span id="firstNumber">0</span> ofertas activas publicadas</h2>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4">
+                <div class="card mb-4 h-100">
+                    <div class="card-body bg-light text-center">
+                        <h2 class='font-weight-light'><span id='secondNumber'>0</span> postulaciones para revisar</h2>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4">
+                <div class="card mb-4 h-100">
+                    <div class="card-body bg-light text-center">
+                        <h2 class='font-weight-light'><span id='thirdNumber'>0</span> notificaciones sin leer</h2>
+                    </div>
+                </div>
+            </div>
+           {{/recruiter}}
+            {{#candidate}}
+            <div class="col-xl-4">
+                <div class="card mb-4 h-100">
+                    <div class="card-body bg-light text-center">
+                        <h2 class='font-weight-light'><span id="firstNumber">0</span> ofertas nuevas</h2>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4">
+                <div class="card mb-4 h-100">
+                    <div class="card-body bg-light text-center">
+                        <h2 class='font-weight-light'><span id='secondNumber'>0</span> postulaciones enviadas</h2>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4">
+                <div class="card mb-4 h-100">
+                    <div class="card-body bg-light text-center">
+                        <h2 class='font-weight-light'><span id='thirdNumber'>0</span> notificaciones sin leer</h2>
+                    </div>
+                </div>
+            </div>
+           {{/candidate}}
+
+
+        </div>
+        
+    </div>
+</main>
+
+<script>
+    var app = new Vue({
+        el: '#appContainer',
+
+        data: {
+            notifications: []
+        },
+
+        methods: {
+            fetchNotifications: function () {
+                axios.get('/api/notifications/list?dashboard=1')
+                    .then(response => this.notifications = response.data)
+                    .catch(err => console.err(err));
+            },
+
+            markAsRead: function (id) {
+                axios.post('/api/notifications/' + id + '/mark', { isRead: true })
+                    .then(response => {
+                        this.fetchNotifications();
+                    })
+                    .catch(err => console.err(err));
+            },
+
+            printDateTime: function (ts) {
+                return moment(ts).format('DD/MM/YYYY HH:mm:ss');
+            }
+        },
+
+        mounted() {
+            this.fetchNotifications();
+        }
+    });
+
+
+    var switchCollapseData = function (anchor) {
+        var div = $(anchor.getAttribute('href'));
+
+        if (div.hasClass('collapse') && div.hasClass('show')) {
+            var icon = 'fa-angle-right'
+            var iconRemove = 'fa-angle-down';
+            var advice = 'Ver más';
+            $(anchor).parent().addClass('border-top-0');
+        } else {
+            var icon = 'fa-angle-down';
+            var iconRemove = 'fa-angle-right';
+            var advice = 'Ver menos';
+            $(anchor).parent().removeClass('border-top-0');
+        }
+
+        $(anchor).text(advice);
+        $(anchor).next().html(`<i class="fas ${icon}"></i>`)
+    };
+
+
+    const fnGetData = function () {
+        axios.get('/api/dashboard/statistics')
+            .then(response => {
+                $('#firstNumber').html(response.data.first);
+                $('#secondNumber').html(response.data.second);
+                $('#thirdNumber').html(response.data.third);
+            })
+            .catch(err => console.error(err));
+    };
+
+    fnGetData();
+
+    setInterval(fnGetData, 45000);
+
+</script>

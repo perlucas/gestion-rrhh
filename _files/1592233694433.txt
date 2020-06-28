@@ -1,0 +1,102 @@
+
+
+=> filtro de sucursales por defecto ?
+
+	$sentencia="select sucursalpagares as sucursal 
+	from opcionesusuariosiadministraciongeneral 
+	where usuario=".$_SESSION['usuario']." 
+	and sucursalpagares is not null 
+	order by pordefecto desc";
+
+	-> usar la sucursal del usuario si no hay una opción configurada
+
+-> moneda por defecto ?
+
+	moneda de referencia
+
+
+-> filtro por defecto ?
+
+	 and (pagares.anulado=0 or pagares.anulado is NULL) and empresas.id=".$_SESSION['empresa']
+
+	Si viene $clavecomprobanteprestamo, añadir: and comprobantesprestamo.id=
+
+	Si hayabogados desde: select personasabogadospagaresengestionjudicial 
+	from opcionesusuariosiadministraciongeneral 
+	where personasabogadospagaresengestionjudicial is not null 
+	and usuario=".$_SESSION['usuario'];
+	
+	entonces añadir: and abogadoengestionjudicial in ABOGADOSS
+
+-> filtro activo inicial ?
+
+	Si existe la opción filtroactivopordefectoenadministrarpagares, utilizarla
+	
+	Si existe la opcion dias de atraso, añadir: date(pagares.fechapago) >= :FECHA
+
+	concatenar el filtro de abogados
+
+	concatenar la condicion de $clavecomprobanteprestamo
+
+-> orden por defecto ? fechapago DESC
+
+
+-> permisos del menu ?
+
+Nuevopagare (si tiene Mostrarnuevoenadministrarpagares)
+
+Modificarpagare
+
+Eliminarpagare
+
+Buscarpagares
+
+Imprimirpagares (mostrar el Opcionesimprimirpagares)
+
+Encaucionpagare
+
+Desencaucionpagare
+
+Condonarpagare
+
+Descondonarpagare
+
+Engestionjudicialpagare
+
+Desengestionjudicialpagare ( si tiene Descondonarpagare)
+
+Ponerirrecuperablepagare
+
+Sacarirrecuperablepagare
+
+Opcionesadministrarpagares
+
+
+-> Condicion de sucursales? => Contiene una opción "Todas las sucursales", donde básicamente no se utiliza el filtro. Luego hay una opción
+por cada una de las sucursales.
+
+-> Condicion de monedas? => Contiene una opción por cada moneda seleccionada.
+
+-> Colocar un importe total de todos los pagarés de la tabla.
+
+-> Columnas de la tabla ?
+
+En Caucion | encaucion | tilde
+Condonado | condonado | tilde
+Gest. Jud. | engestionjudicial | tilde
+Irrecuperable | irrecuperable | tilde
+Sucursal | sucursal.nombre
+Número | numero
+Fecha Recepción | fecharecepcion | date
+Fecha de Pago | fechapago | date
+Persona | personas.denominacion | denominacion + datos de la persona particulares	
+Importe | importe | saldo
+Asiento | asientoirrecuperable |  Link al asiento contable => sólo si tiene modulo de contabilidad
+V. Cancelacion | resultado de invocar al Resolvervalorcancelacion
+
+-> Permiso doble click ? Modificar
+
+
+
+
+

@@ -1,0 +1,149 @@
+<main>
+    <div class="container" id='appContainer'>
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card border-2 rounded-lg mt-5">
+                    
+                    {{!-- header --}}
+                    <div class="card-header">
+                        <h3 class="text-center font-weight-light my-4">
+                            {{job.title}}
+                        </h3>
+                    </div>
+
+                    {{!-- body --}}
+                    <div class="card-body">
+
+                        {{!-- descripcion --}}
+                        <div class="font-weight-bold w-100">
+                            Descripción:
+                        </div>
+                        <div class="font-italic w-100 mb-3 row">
+                            <span class="col-2"></span>
+                            <span class="col-10">{{job.description}}</span>
+                        </div>
+                        <hr>
+                        {{!-- skills --}}
+                        <div class="row mb-3">
+                            <div class="font-weight-bold col-2">
+                                Skills:
+                            </div>
+                            <div class="col-10">
+                                {{#each job.skills}}
+                                <span class="badge badge-pill badge-dark">
+                                    {{ this }}
+                                </span>
+                                {{/each}}
+                            </div>
+                        </div>
+                        <hr>
+
+                        {{!-- ubicacion --}}
+                        <div class="row mb-3">
+                            <div class="font-weight-bold col-2">
+                                Ubicación:
+                            </div>
+                            <div class='col-10 font-italic'>{{ location }}</div>
+                        </div>
+                        <hr>
+                        {{!-- fecha de expiracion --}}
+                        <div class="row mb-3">
+                            <div class="font-weight-bold col-4">
+                                Fecha de expiración:
+                            </div>
+                            <div class='col-8 font-italic'>{{ finishDate }}</div>
+                        </div>
+                        <hr>
+                        {{!-- anunciante --}}
+                        <div class="row">
+                            <div class="font-weight-bold col-3">Anunciado por:</div>
+                            <div class="col-9">
+                                <a class='btn btn-link' href="/users/edit/{{job.announcer._id}}">
+                                    {{ job.announcer.name }}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{!-- footer --}}
+                    <div class="card-footer text-center">
+                        <div class="small d-flex justify-content-around">
+                        {{#if expired}}
+                            <i>Ha expirado la fecha máxima de postulación.</i>
+                        {{else}}
+                            {{#if requested}}
+                            <i>Ya se ha postulado a este trabajo.</i>
+                            {{else}}
+                            <button class='btn btn-primary' @click="openRequestModal()">
+                                Postularse
+                            </button>
+                            {{/if}}
+                        {{/if}}
+                        </div>
+                    </div>
+
+
+                </div>
+
+            </div>
+        </div>
+
+        {{!-- alerts container --}}
+        <div class="row justify-content-center my-2">
+            <div class="col-lg-8" id='alertsContainer'></div>
+        </div>
+
+        {{!-- modal de solicitud --}}
+        <div class="modal fade" id="applicationModal" tabindex="-1" role="dialog" aria-labelledby="appModalL" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary">
+                        <h5 class='text-white'>Postulación al puesto</h5>
+                    </div>
+
+                    <div class="modal-body">
+                        <form>
+                            {{!-- mensaje --}}
+                            <div class="form-group row">
+                                <label for="inputMsg" class="col-4 col-form-label font-weight-bold">
+                                    Mensaje (opcional):
+                                </label>
+                                <div class="col-8">
+                                    <textarea rows="4" class='form-control' id='inputMsg' style='resize: none'>
+                                    </textarea>
+                                </div>
+                            </div>
+
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                        <button type="button" class="btn btn-primary" @click="sendRequest()">Enviar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<script>
+    var app = new Vue({
+        el: '#appContainer',
+
+        methods: {
+            openRequestModal: function () {
+                $('#applicationModal').modal('show');
+            },
+            sendRequest: function () {
+                axios.post('/api/jobs/{{job._id}}/request', { message: $('#inputMsg').val() })
+                    .then(() => {
+                        console.log("Success!");
+                        $('#applicationModal').modal('hide');
+                        window.location.reload();
+                    })
+                    .catch(err => console.error(err));
+            }
+        }
+    });
+</script>

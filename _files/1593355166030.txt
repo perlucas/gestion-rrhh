@@ -1,0 +1,36 @@
+
+Más adelante:
+-> avanzar con proyecto de live chat
+	- Vuejs + vueRouter
+	- Firebase + NodeJs
+	- WebSockets
+-> construír landing page para juancito
+-> avanzar con cursos de Udemy
+-> construir landing page para el proyecto de la tia
+-> hablar con Dameno (posibilidades)
+
+
+=================== Esta semana!!
+
+-> avanzar con tesis (resumen, agradecimientos y correcciones)
+-> avanzar con proyecto en stack MEVN (gestión de RRHH)
+-> avanzar con curso MEAN
+-> preparar y dar clase de Joaquín (DFD)
+-> Seminario de SQL Server (Lunes 29)
+-> Inscribirse a Seminario de Project Management
+
+=================== Próximas actividades
+-> Entrevista (Aivo): Lunes 10:30 hs.
+-> Entrevista (SoftPet): martes a las 11:00 hs.
+-> Entrevista (Sooft Technology): pendiente de confirmación
+
+
+================= Entrevistas ya pasadas
+Sondeos (Java/Javacript) => Me dijeron que seguían en contacto
+AVC Gestión (Extranjero) => Me dijeron que seguían en contacto
+SoftPet => Me dijeron que seguían en contacto (reunión en martes)
+Sebastian => Me dijo que me avisaba el lunesss
+
+===================== Seminariossss
+
+Seminario SQLServer (Lunes 29)

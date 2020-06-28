@@ -1,0 +1,199 @@
+<main>
+    <div class="container" id='jobEditForm'>
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card border-2 rounded-lg mt-5">
+                    
+                    {{!-- header --}}
+                    <div class="card-header">
+                        <h3 class="text-center font-weight-light my-4">
+                            Detalles del trabajo
+                        </h3>
+                    </div>
+
+                    {{!-- body --}}
+                    <div class="card-body">
+                        <form method='post'>
+                            
+                            <div class="form-group row">
+                                <label for="inputTitle" class="col-4 col-form-label font-weight-bold">
+                                    Título:
+                                </label>
+                                <div class="col-8">
+                                    <template v-if="editMode">
+                                        <input type="text" :class="'form-control ' + (errors.title ? 'is-invalid' : '')" id="inputTitle" v-model="job.title">
+                                        <div class="invalid-feedback" v-if="errors.title">
+                                            \{{errors.title.message}}
+                                        </div>
+                                    </template>
+                                    <span v-else>\{{ job.title }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group row">
+                                <label for="inputDescription" class="col-4 col-form-label font-weight-bold">Descripción:</label>
+                                <div class="col-8">
+                                    <template v-if="editMode">
+                                        <textarea :class="'form-control ' + (errors.description ? 'is-invalid' : '')" id='inputDescription' v-model="job.description"></textarea>
+                                        <div class="invalid-feedback" v-if="errors.description">
+                                            \{{errors.description.message}}
+                                        </div>
+                                    </template>
+                                    <span v-else>\{{ job.description }}</span>
+                                </div>
+                            </div>
+
+                            <my-skillset 
+                                parentcss='form-group row'
+                                labelcss="font-weight-bold"
+                                title='Habilidades/skills requeridos:'
+                                skillset="{{job.skills}}"
+                                :editable="editMode"
+                                @skills-changed="job.skills = $event"
+                                ref="mySkillset"
+                            ></my-skillset>
+                            
+                            <div class="form-group row p-2">
+                                <label for="locationGroup" class="font-weight-bold">Ubicación:</label>
+
+                                <div class="input-group" id='locationGroup' v-if="editMode">
+                                    <div class="btn-group btn-group-toggle input-group-prepend" data-toggle="buttons">
+                                        <label :class="'btn btn-info ' + (job.isRemote ? 'active' : '')" @click="job.isRemote = true">
+                                            <input type="radio" id="remoteCheck" autocomplete="off"> Remoto
+                                        </label>
+                                        <label :class="'btn btn-info ' + (!job.isRemote ? 'active' : '')" @click="job.isRemote = false">
+                                            <input type="radio" id="onSiteCheck" autocomplete="off" checked > On Site
+                                        </label>
+                                    </div>
+                                    <input type="text" class="form-control" id='inputCountry' placeholder='País' v-model='job.location.country' :disabled='job.isRemote'>
+                                    <input type="text" class="form-control" id='inputState' placeholder="Estado/Provincia" v-model='job.location.state' :disabled='job.isRemote'>
+                                    <input type="text" class="form-control" id='inputCity' placeholder="Ciudad" v-model='job.location.city' :disabled='job.isRemote'>
+                                </div>
+                                
+                                <span class="pl-5" v-else>
+                                    \{{ jobString }}
+                                </span>
+
+                            </div>
+
+                            <div class="form-group row">
+                                <my-datepicker
+                                    parentcss="col-6"
+                                    labelcss="font-weight-bold"
+                                    title='Fecha de expiración:'
+                                    inputname='expiration'
+                                    v-model='job.expirationDate'
+                                    :editable="editMode"
+                                    ref='myDatepicker'
+                                ></my-datepicker>
+
+                                <div class="col-6">
+                                    <div v-if="editMode" class="custom-control custom-checkbox mr-sm-2 mt-4">
+                                        <input type="checkbox" @change="job.fullfilled = ! job.fullfilled" class="custom-control-input" id="fullfilledInput" :checked="job.fullfilled">
+                                        <label class="custom-control-label font-weight-bold" for="fullfilledInput">
+                                            Búsqueda finalizada
+                                        </label>
+                                    </div>
+
+                                    <div class='font-italic' v-else>
+                                        (\{{ job.fullfilled ? 'Búsqueda finalizada' : 'Búsqueda abierta' }})
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+
+                        </form>
+                    </div>
+
+                    {{!-- footer --}}
+                    <div class="card-footer text-center">
+                        <div class="small d-flex justify-content-around">
+                            <button class='text-primary btn btn-link' @click="editMode = true" v-if="! editMode">
+                                Editar
+                            </button>
+                            <button v-if="editMode && ! spinnerPresent" class='text-success btn btn-link' @click="requestUpdate()">
+                                Guardar cambios
+                            </button>
+                            <div v-if="spinnerPresent" class="spinner-border" role="status">
+                                <span class="sr-only">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+        {{!-- alerts container --}}
+        <div class="row justify-content-center my-2">
+            <div class="col-lg-8" id='alertsContainer'></div>
+        </div>
+    </div>
+</main>
+<script>
+
+    var app = new Vue({
+        el: '#jobEditForm',
+        data: {
+            editMode: false,
+            spinnerPresent: false,
+            job: {
+                title: '{{job.title}}',
+                description: '{{job.description}}',
+                skills: [],
+                isRemote: {{ job.isRemote }},
+                location: {
+                    country: '{{ job.location.country }}',
+                    state: '{{ job.location.state }}',
+                    city: '{{ job.location.city }}'
+                },
+                expirationDate: '{{ job.expirationDate }}',
+                fullfilled: {{ job.fulfilled }}
+            },
+            errors: {}
+        },
+
+        computed: {
+            jobString: function () {
+                if (this.job.isRemote) return "Remoto";
+
+                return [
+                    this.job.location.country,
+                    this.job.location.state,
+                    this.job.location.city
+                ]
+                    .filter(val => val.length > 0)
+                    .join(' - ');
+            }
+        },
+
+        methods: {
+            requestUpdate: function () {
+                var data = {};
+                Object.assign(data, this.job);
+                this.spinnerPresent = true;
+
+                axios.put('/api/jobs/{{job._id}}', data)
+                    .then(response => {
+                        this.editMode = false;
+                        this.errors = {};
+                        appendAlert({
+                            element: '#alertsContainer',
+                            type: 'success',
+                            message: 'La oferta ha sido actualizada exitosamente',
+                            fixed: false,
+                            timeout: 3
+                        });
+                    })
+                    .catch(err => { this.errors = err.response.data.errors; })
+                    .then(() => { this.spinnerPresent = false; });
+            }
+        }
+
+    });
+
+
+</script>

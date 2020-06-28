@@ -1,0 +1,216 @@
+<main>
+    <div class="container-fluid" id='appContainer'>
+        <div class="row">
+
+            {{!-- tabla de postulaciones --}}
+            <div class="col-xl-12 mt-4">
+                <div class="card mb-4">
+                    <template v-if="requests.length > 0">
+                        <div class="card-header">
+                            <h3>Postulaciones recibidas</h3>
+                        </div>
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                <th scope="col" width="20%">Puesto</th>
+                                <th scope="col" width='20%'>Fecha de Postulación</th>
+                                <th scope="col">Candidato</th>
+                                <th scope="col"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="(request, index) in requests">
+                                    <td>
+                                        <a class='btn btn-link' :href="'/recruiter/jobs/edit/' + request.job.id" target='_blank'>
+                                            \{{ request.job.title }}
+                                        </a>
+                                    </td>
+                                    <td>\{{ request.date }}</td>
+                                    <td>
+                                        \{{ request.candidate.name }}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group-vertical">
+                                            <button target="_blank" class='btn btn-link' type='button' @click="openDetailsModal(index)">
+                                                Ver
+                                            </button>
+                                            <button class='btn btn-link text-danger' type='button' @click="openRejectModal(index)">
+                                                Rechazar
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </template>
+                    <div class='card-header' v-else>
+                        <h3>Aun no existen postulaciones</h3>
+                    </div>
+                </div>
+
+                {{!-- contenedor de alertas --}}
+                <div class="m-3" id='alertsContainer'></div>
+
+            </div>
+
+            {{!-- modal - see request --}}
+            <div class="modal fade" id="seeRequestModal" tabindex="-1" role="dialog" aria-labelledby="seeRequestModalLB" aria-hidden="true" v-if="selectedJob">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Datos de la solicitud</h3>
+                        </div>
+                        <div class="modal-body">
+                            <div class='col-12'>
+                                <i class='fas fa-user'></i> \{{ selectedJob.candidate.name }} (\{{ selectedJob.candidate.age }} años) 
+                            </div>
+                            <div class="col-12 mb-1">
+                                <i class='fas fa-envelope'></i> \{{ selectedJob.candidate.email }}
+                            </div>
+                            <div class="col-12 font-italic text-justify mb-1">
+                                \{{ selectedJob.message }}
+                            </div>
+                            <div class="col-12 mb-1">
+                                <i class='fas fa-map-marker'></i> \{{ selectedJob.candidate.location }}
+                            </div>
+                            <div class="col-12">
+                                <span class="badge badge-pill badge-dark" v-for="skill in selectedJob.skills">
+                                    \{{ skill }}
+                                </span>
+                            </div>
+                            <div class='col-12'>
+                                <a target='_blank' v-if="selectedJob.candidate.cvfile" class='btn btn-link pl-0'
+                                    :href="'/downloads/cv?file=' + selectedJob.candidate.cvfile"
+                                >
+                                    Descargar CV
+                                </a>
+                                <span v-else class='font-italic'>No se adjuntó un CV.</span>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                            <button type="button" class="btn btn-danger" onclick="switchModal()">Rechazar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{!-- modal - delete job --}}
+            <div class="modal fade" id="confirmDeletionModal" tabindex="-1" role="dialog" aria-labelledby="confirmDeletionLb" aria-hidden="true" v-if="selectedJob">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5>¿Rechazar la postulación de <i>\{{ selectedJob.candidate.name }}</i>?</h5>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group row p-3">
+                                <label for="rejectMessage" class='small font-weight-bold'>Feedback o Mensaje</label>
+                                <textarea id="rejectMessage" cols="30" rows="5" class='form-control' v-model="message" placeholder="Escriba algo...">
+                                </textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                            <button type="button" class="btn btn-primary" @click="rejectSelected()" :disabled="message.length === 0">Rechazar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        
+        </div>
+    </div>
+</main>
+
+<script>
+
+    var switchModal = function () {
+        $('#seeRequestModal').modal('hide');
+        $('#confirmDeletionModal').modal('show');
+    };
+
+    var app = new Vue({
+        el: '#appContainer',
+
+        data: {
+            requests: [],
+
+            selectedIndex: -1,
+
+            message: ""
+        },
+
+        computed: {
+            selectedJob: function () {
+                if ( (this.selectedIndex + 1) * this.requests.length > 0 ) {
+                    return this.requests[this.selectedIndex]
+                }
+                return null;
+            }
+        },
+
+        methods: {
+            fetchRequests: function () {
+                axios.get('/api/jobrequests/listReceived')
+                    .then(response => {
+                        this.requests = response.data;
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        appendAlert({
+                            element: '#alertsContainer',
+                            type: 'danger',
+                            message: 'No se pudieron obtener los resultados',
+                            fixed: false,
+                            timeout: 3
+                        });
+                    });
+            },
+
+            openDetailsModal: function (index) {
+                this.selectedIndex = index;
+                setTimeout(function () {
+                    $('#seeRequestModal').modal('show');
+                }, 50);
+            },
+
+            openRejectModal: function (index) {
+                this.selectedIndex = index;
+                setTimeout(function () {
+                    $('#confirmDeletionModal').modal('show');
+                }, 50);
+            },
+
+            rejectSelected: function () {
+                axios.put('/api/jobrequests/' + this.selectedJob.id + '/reject', {message: this.message})
+                    .then(result => {
+                        this.fetchRequests();
+                        appendAlert({
+                            element: '#alertsContainer',
+                            type: 'success',
+                            message: 'La solicitud ha sido rechazada',
+                            fixed: false,
+                            timeout: 3
+                        });
+                    })
+                    .catch(err => {
+                        appendAlert({
+                            element: '#alertsContainer',
+                            type: 'danger',
+                            message: 'La solicitud no pudo ser rechazada',
+                            fixed: false,
+                            timeout: 3
+                        });
+                    })
+                    .then(() => {
+                        $('#confirmDeletionModal').modal('hide');
+                        this.selectedIndex = -1;
+                    });
+            }
+        },
+
+        mounted() {
+            this.fetchRequests();
+        }
+    });
+
+</script>

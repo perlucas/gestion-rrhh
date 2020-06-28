@@ -1,0 +1,253 @@
+<main>
+    <div class="container-fluid" id='jobsContainer'>
+        <div class="row">
+
+            {{!-- tabla de ofertas --}}
+            <div class="col-xl-12 mt-4">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3 class='d-inline align-middle'>Ofertas Activas</h3>
+                        <button class="btn btn-primary d-inline align-top float-right"
+                            data-toggle='modal' data-target="#filtersModal"
+                        >Filtros</button>
+                    </div>
+                    <table class="table table-hover" v-if="jobs.length > 0">
+                        <thead>
+                            <tr>
+                            <th scope="col">Título</th>
+                            <th scope="col">Ubicación</th>
+                            <th scope="col">Skills</th>
+                            <th scope="col"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="job in jobs">
+                            <td>\{{ job.title }}</td>
+                            <td>\{{ getLocationString(job) }}</td>
+                            <td>
+                                <span v-for="skill in job.skills" class="badge badge-pill badge-dark">
+                                    \{{ skill }}
+                                </span>
+                            </td>
+                            <td>
+                                <a :href="'/jobs/request/' + job._id" class="btn btn-link" target="_blank">Detalles</a>
+                            </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div v-else class='card-header'>
+                        <h3>No se encontraron ofertas</h3>
+                    </div>
+                </div>
+
+            </div>
+
+            {{!-- modal de filtros de busqueda --}}
+            <div class="modal fade" id="filtersModal" tabindex="-1" role="dialog" aria-labelledby="filtersModalL" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header bg-primary">
+                            <h5 class='text-white'>Criterios de búsqueda</h5>
+                        </div>
+
+                        <div class="modal-body">
+                            <form>
+                                {{!-- titulo --}}
+                                <div class="form-group row">
+                                    <label for="inputTitle" class="col-2 col-form-label font-weight-bold">
+                                        Título:
+                                    </label>
+                                    <div class="col-3">
+                                        <select id="titleCond" class="form-control">
+                                            <option value="+">Contiene</option>
+                                            <option value="-">No Contiene</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-7">
+                                        <input type="text" class="form-control" id="inputTitle">
+                                    </div>
+                                </div>
+                                
+                                {{!-- descripcion --}}
+                                <div class="form-group row">
+                                    <label for="inputDesc" class="col-2 col-form-label font-weight-bold">
+                                        Descripción:
+                                    </label>
+                                    <div class="col-3">
+                                        <select  id="descCond" class="form-control">
+                                            <option value="+">Contiene</option>
+                                            <option value="-">No Contiene</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-7">
+                                        <textarea rows="4" class='form-control' id='inputDesc' style='resize: none'></textarea>
+                                    </div>
+                                </div>
+
+                                {{!-- skills --}}
+                                <div class="form-group row">
+                                    <label for="inputDesc" class="col-2 col-form-label font-weight-bold">
+                                        Habilidades:
+                                    </label>
+                                    <div class="col-3">
+                                        <select id="skillsCond" class="form-control">
+                                            <option value="+">Contiene</option>
+                                            <option value="-">No Contiene</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-7">
+                                        <input type="text" id='inputSkill' class="form-control" @keydown.enter="addSkill()">
+                                        <div class="w-100"></div>
+                                        <ul class="list-inline">
+                                            <li v-for="skill in filters.skills" 
+                                                class="list-inline-item bg-info mt-2 p-2 text-white rounded-pill"
+                                            >
+                                                \{{skill}}
+                                                <a @click="removeSkill(skill)"><i class="fas fa-times-circle"></i></a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                {{!-- ubicacion --}}
+                                <div class="form-row pl-1">
+                                        <label for="locationGroup" class="font-weight-bold mb-1">Ubicación</label>
+
+                                        <div class="input-group" id='locationGroup'>
+                                            <div class="btn-group btn-group-toggle input-group-prepend" data-toggle="buttons">
+                                                <label class="btn btn-info" @click="filters.isRemote = true">
+                                                    <input type="radio" id="remoteCheck" autocomplete="off"> Remoto
+                                                </label>
+                                                <label class="btn btn-info active" @click="filters.isRemote = false">
+                                                    <input type="radio" id="onSiteCheck" autocomplete="off" checked > On Site
+                                                </label>
+                                            </div>
+                                            <input type="text" class="form-control" id='inputCountry' placeholder='País' v-bind:disabled='filters.isRemote'>
+                                            <input type="text" class="form-control" id='inputState' placeholder="Estado/Provincia" v-bind:disabled='filters.isRemote'>
+                                            <input type="text" class="form-control" id='inputCity' placeholder="Ciudad"v-bind:disabled='filters.isRemote'>
+                                        </div>
+                                    </div>
+
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                            <button type="button" class="btn btn-dark" @click="resetFilters()">Quitar Filtros</button>
+                            <button type="button" class="btn btn-primary" @click="applyFilters()">Aplicar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        
+        </div>
+    </div>
+</main>
+
+<script>
+    var app = new Vue({
+        el: '#jobsContainer',
+
+        data: {
+            jobs: [],
+
+            filters: {
+                skills: [],
+                isRemote: false
+            }
+        },
+
+        methods: {
+
+            fetchJobs: function () {
+                var data = {};
+
+                // check title & description
+                [
+                    ['#inputTitle', '#titleCond', 'title'],
+                    ['#inputDesc', '#descCond', 'description']
+                ]
+                    .forEach(arr => {
+                        let id, cond, key;
+                        [id, cond, key] = arr;
+                        let value = $(id).val();
+                        if (value) {
+                            data[key] = {};
+                            data[key][key] = value;
+                            data[key].condition = $(cond).val();
+                        }
+                    });
+
+                // check location condition
+                data.location = {
+                    isRemote: this.filters.isRemote
+                };
+
+                [
+                    ['#inputCountry', 'country'],
+                    ['#inputState', 'state'], 
+                    ['#inputCity', 'city']
+                ]
+                    .forEach(arr => {
+                        let id, key;
+                        [id, key] = arr;
+                        let val = $(id).val();
+                        if (val) {
+                            data.location[key] = val;
+                        }
+                    });
+
+                // check skills
+                if (this.filters.skills.length) {
+                    data.skills = {
+                        skills: this.filters.skills,
+                        condition: $('#skillsCond').val()
+                    };
+                }
+
+                axios.post('/api/jobs/ask', data)
+                    .then(result => this.jobs = result.data)
+                    .catch(err => console.log(err));
+            },
+
+            applyFilters: function () {
+                this.fetchJobs();
+                $('#filtersModal').modal('hide');
+            },
+
+            resetFilters: function () {
+                // reset values
+                ['#inputTitle','#inputDesc','#inputCountry','#inputState','#inputCity'].forEach(
+                    id => $(id).val('')
+                );
+                this.filters.isRemote = false;
+                this.filters.skills = [];
+
+                // reset conditions
+                ['#titleCond', '#descCond', '#skillsCond'].forEach(id => $(id).val('+'));
+            },
+
+            getLocationString: function (job) {
+                if (job.isRemote) return "Remoto";
+
+                var arr = [job.location.country, job.location.state, job.location.city];
+                arr = arr.filter(v => v.length > 0);
+                return arr.join(' - ');
+            },
+
+            addSkill: function () {
+                this.filters.skills.push($('#inputSkill').val());
+                $('#inputSkill').val('');
+            },
+
+            removeSkill: function (sk) {
+                this.filters.skills = this.filters.skills.filter(v => v !== sk);
+            }
+        },
+
+        mounted() {
+            this.fetchJobs();
+        }
+    });
+
+
+</script>

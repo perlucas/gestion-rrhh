@@ -1,0 +1,165 @@
+<main>
+    <div class="container-fluid" id='appContainer'>
+        <div class="row">
+
+            {{!-- tabla de postulaciones --}}
+            <div class="col-xl-12 mt-4">
+                <div class="card mb-4">
+                    <template v-if="requests.length > 0">
+                        <div class="card-header">
+                            <h3>Postulaciones activas</h3>
+                        </div>
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                <th scope="col" width="20%">Puesto</th>
+                                <th scope="col" width='20%'>Fecha de Postulación</th>
+                                <th scope="col">Mensaje</th>
+                                <th scope="col"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="(request, index) in requests">
+                                    <td>\{{ request.jobTitle + (request.rejected ? " (rechazado)" : "") }}</td>
+                                    <td>\{{ request.requestDate }}</td>
+                                    <td class='font-italic' v-html="writeRequestMessage(request.message)"></td>
+                                    <td>
+                                        <div class="btn-group-vertical">
+                                            <a target="_blank" class='btn btn-link' :href="'/jobs/request/' + request.jobId">
+                                                Ver
+                                            </a>
+                                            <a class='btn btn-link text-danger' @click="showDeletionModal(index)">
+                                                Eliminar
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </template>
+                    <div class='card-header' v-else>
+                        <h3>Aun no existen postulaciones</h3>
+                    </div>
+                </div>
+
+                {{!-- contenedor de alertas --}}
+                <div class="m-3" id='alertsContainer'></div>
+
+            </div>
+
+            {{!-- modal - delete request --}}
+            <div class="modal fade" id="confirmDeletionModal" tabindex="-1" role="dialog" aria-labelledby="confirmDeletionLb" aria-hidden="true" v-if="requests.length > 0 && deleteThisIndex >=0">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-body">
+                            <h5>¿Eliminar la solicitud de <i>\{{ requests[deleteThisIndex].jobTitle }}</i>?</h5>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                            <button type="button" class="btn btn-primary" @click="deleteSelectedRequest()">Eliminar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        
+        </div>
+    </div>
+</main>
+
+<script>
+    var app = new Vue({
+        el: '#appContainer',
+
+        data: {
+            requests: [],
+            deleteThisIndex: -1
+        },
+
+        methods: {
+            fetchRequests: function() {
+                this.deleteThisIndex = -1;
+                axios.get('/api/jobrequests/list')
+                    .then(response => this.requests = response.data)
+                    .catch(err => console.error(err));
+            },
+
+            writeRequestMessage: function (text) {
+                var result = text;
+                if (result.replace(/\s/, '').length === 0) {
+                    result = '(No se ha enviado un mensaje)';
+                }
+                else {
+                    var limit = 20;
+                    var cantWords = result.split(/\s/).length;
+                    if (cantWords > limit) {
+                        
+                        result = text.substr(0, limit);
+                        result += `<span>...<button class='btn btn-link p-0 m-0' onclick='changeLength(this)'> Ver más</button></span><span class='d-none'>`;
+                        result += text.substr(limit);
+                        result += ` <button class='btn btn-link p-0 m-0' onclick="changeLength(this)">Ver menos</button></span>`;
+                    }
+                }
+                return result;
+            },
+
+            showDeletionModal: function (index) {
+                this.deleteThisIndex = index;
+                setTimeout(function () {
+                    $('#confirmDeletionModal').modal('show');
+                }, 50);
+
+            },
+
+            deleteSelectedRequest: function () {
+                var req = this.requests[this.deleteThisIndex];
+                axios.delete('/api/jobrequests/' + req.requestId)
+                    .then(result => {
+                        if (result.data.success) {
+                            appendAlert({
+                                element: '#alertsContainer',
+                                type: 'success',
+                                message: 'La postulación fue eliminada',
+                                fixed: false,
+                                timeout: 3
+                            });
+                        }
+                        else {
+                            appendAlert({
+                                element: '#alertsContainer',
+                                type: 'danger',
+                                message: 'La postulación no pudo ser eliminada',
+                                fixed: false,
+                                timeout: 3
+                            });
+                        }
+                    })
+                    .catch(err => {
+                        appendAlert({
+                            element: '#alertsContainer',
+                            type: 'danger',
+                            message: 'La postulación no pudo ser eliminada',
+                            fixed: false,
+                            timeout: 3
+                        });
+                    })
+                    .then(() => {
+                        $('#confirmDeletionModal').modal('hide');
+                        this.fetchRequests();
+                    });
+            }
+        },
+
+        mounted() {
+            this.fetchRequests();
+        }
+    });
+
+
+
+    // jquery functions
+    function changeLength (btn) {
+        $(btn).parent().siblings().removeClass('d-none');
+        $(btn).parent().addClass('d-none');
+    };
+
+</script>

@@ -1,0 +1,147 @@
+<main>
+    <div class="container-fluid" id='recruitersContainer'>
+        <div class="row">
+
+            {{!-- tabla de reclutadores --}}
+            <div class="col-xl-12 mt-4">
+                <div class="card mb-4">
+                    <template v-if="recruiters.length > 0">
+                        <div class="card-header">
+                            <h3>Reclutadores</h3>
+                        </div>
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                <th scope="col">Nombre</th>
+                                <th scope="col">Edad</th>
+                                <th scope="col"># Anunciados</th>
+                                <th scope="col"># Resueltos</th>
+                                <th scope="col"># Caducados</th>
+                                <th scope="col"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="(user, index) in recruiters">
+                                    <td>\{{ user.name }}</td>
+                                    <td>\{{ user.age }}</td>
+                                    <td>\{{ user.totalJobs }}</td>
+                                    <td>\{{ user.totalWon }}</td>
+                                    <td>\{{ user.totalLoosed }}</td>
+                                    <td class='p-0'>
+                                        <div class="btn-group-vertical">
+                                            <a class="btn btn-link" :href="'/users/edit/' + user.id" target="_blank">Ver</a>
+                                            <a class="btn btn-link text-danger" v-on:click="requestDelete(index)">Eliminar</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </template>
+                    <div class='card-header' v-else>
+                        <h3>Aun no existen usuarios reclutadores</h3>
+                    </div>
+                </div>
+            </div>
+
+            {{!-- modal - delete recruiter --}}
+            <div class="modal fade" id="confirmDeletionModal" tabindex="-1" role="dialog" aria-labelledby="confirmDeletionLb" aria-hidden="true" v-if="recruiters.length > 0">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-body">
+                            <h5>¿Eliminar al reclutador \{{ recruiters[deleteThisIndex].name }}?</h5>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                            <button type="button" class="btn btn-primary" @click="deleteCurrentSelected()">Eliminar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{!-- formulario - nuevo reclutador --}}
+            <div class="col-xl-12">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3>Nuevo Reclutador</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group text-center" v-if="error.length > 0">
+                            <span class='medium text-danger'>\{{ error }}</span>
+                        </div>
+                        <form class='form-inline justify-content-center' method='post'>
+                            <input type="text" class="form-control mb-2 mr-sm-2" placeholder="Username" v-model="username">
+                            <input type="text" class="form-control mb-2 mr-sm-2" placeholder="Email" v-model="email">
+                            <input type="text" class="form-control mb-2 mr-sm-2" placeholder="Contraseña" v-model="password">
+                            <input type="submit" class="btn btn-primary mb-2" value='Registrar' v-on:click="register($event)">
+                        </form>
+                    </div>
+                </div>
+            </div>
+        
+        </div>
+    </div>
+</main>
+
+<script>
+
+    var app = new Vue({
+        el: '#recruitersContainer',
+        data: {
+            recruiters: [],
+            username: "",
+            email: "",
+            password: "",
+            error: "",
+            deleteThisIndex: 0
+        },
+        methods: {
+            register: function (event) {
+                event.preventDefault();
+                axios.post('/api/recruiters/new', {
+                    username: this.username,
+                    email: this.email,
+                    password: this.password,
+                })
+                    .then(response => {
+                        this.username = this.email = this.password = this.error = "";
+                        this.getRecruitersFromApi();
+                    })
+                    .catch(err => {
+                        this.error = "Credenciales erróneas para el nuevo usuario";
+                    });
+            },
+
+            getRecruitersFromApi: function () {
+                axios.get('/api/recruiters/all')
+                    .then(response => {
+                        this.recruiters = response.data;
+                        [this.deleteThisIndex] = this.recruiters.keys();
+                    })
+                    .catch(err => console.log("Error: " + err));
+            },
+
+            requestDelete: function (index) {
+                this.deleteThisIndex = index;
+                $('#confirmDeletionModal').modal('show');
+            },
+
+            deleteCurrentSelected: function () {
+                if (this.deleteThisIndex < 0 || this.recruiters.length === 0) {
+                    return $('#confirmDeletionModal').modal('hide');
+                }
+
+                axios.delete(`/api/recruiters/${this.recruiters[this.deleteThisIndex].username}`)
+                    .then( response => {
+                        $('#confirmDeletionModal').modal('hide');
+                        this.getRecruitersFromApi();
+                    })
+                    .catch(err => console.log("Error: " + err));
+            }
+        },
+        
+        mounted() {
+            this.getRecruitersFromApi();
+        }
+    });
+
+</script>

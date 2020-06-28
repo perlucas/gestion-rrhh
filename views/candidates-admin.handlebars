@@ -1,0 +1,128 @@
+<main>
+    <div class="container-fluid" id='appContainer'>
+        <div class="row">
+
+            {{!-- tabla de candidates --}}
+            <div class="col-xl-12 mt-4">
+                <div class="card mb-4">
+                    <template v-if="candidates.length > 0">
+                        <div class="card-header">
+                            <h3>Candidatos</h3>
+                        </div>
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                <th scope="col">Nombre</th>
+                                <th scope="col">Edad</th>
+                                <th scope="col">Ubicación</th>
+                                <th scope="col">Skills</th>
+                                <th scope="col"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="(user, index) in candidates">
+                                    <td>\{{ user.name }}</td>
+                                    <td>\{{ user.age }}</td>
+                                    <td>
+                                        \{{ 
+                                            [
+                                                user.location.country,
+                                                user.location.state,
+                                                user.location.city
+                                            ]
+                                            .filter(v => v.length > 0)
+                                            .join(' - ')
+                                        }}
+                                    </td>
+                                    <td>
+                                        <span v-for="skill in user.skills" class="badge badge-pill badge-dark m-1">
+                                            \{{ skill }}
+                                        </span>
+                                    </td>
+                                    <td class='p-0'>
+                                        <div class="btn-group-vertical">
+                                            <a class="btn btn-link" :href="'/users/edit/' + user.id" target="_blank">Ver</a>
+                                            <a class="btn btn-link text-danger" @click="requestDelete(index)">Eliminar</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </template>
+                    <div class='card-header' v-else>
+                        <h3>Aun no existen usuarios candidatos</h3>
+                    </div>
+                </div>
+            </div>
+
+            {{!-- modal - delete recruiter --}}
+            <div class="modal fade" id="confirmDeletionModal" tabindex="-1" role="dialog" aria-labelledby="confirmDeletionLb" aria-hidden="true" v-if="candidates.length > 0 && deleteThisIndex >=0">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-body">
+                            <h5>¿Eliminar al candidato <i>\{{ candidates[deleteThisIndex].name }}</i>?</h5>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                            <button type="button" class="btn btn-primary" @click="deleteCurrentSelected()">Eliminar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        
+        </div>
+    </div>
+</main>
+
+<script>
+var app = new Vue({
+    el: '#appContainer',
+
+    data: {
+        candidates: [
+            {
+                id: 123,
+                name: 'Test',
+                age: 99,
+                location: {
+                    country: 'Brazil',
+                    state: 'Brasilia',
+                    city: 'AA'
+                },
+                skills: ['PHP', 'Java']
+            }
+        ],
+        deleteThisIndex: -1
+    },
+
+    methods: {
+        requestDelete: function (index) {
+            this.deleteThisIndex = index;
+            setTimeout(function () {
+                $('#confirmDeletionModal').modal('show');
+            }, 50);
+        },
+
+        deleteCurrentSelected: function () {
+            var user = this.candidates[this.deleteThisIndex];
+            axios.delete('/api/candidates/' + user.id)
+                .then(response => {
+                    this.deleteThisIndex = -1;
+                    this.fetchCandidates();
+                    $('#confirmDeletionModal').modal('hide');
+                })
+                .catch(err => console.error(err));
+        },
+
+        fetchCandidates: function () {
+            axios.get('/api/candidates/all')
+                .then(response => {this.candidates = response.data})
+                .catch(err => console.error(err));
+        }
+    },
+
+    mounted() {
+        this.fetchCandidates();
+    }
+});
+</script>

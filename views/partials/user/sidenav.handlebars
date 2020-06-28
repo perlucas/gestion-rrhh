@@ -1,0 +1,64 @@
+<div id="layoutSidenav_nav">
+    <nav class="sb-sidenav accordion sb-sidenav-dark" id="sidenavAccordion">
+        <div class="sb-sidenav-menu">
+            <div class="nav">
+                <a class="nav-link" href="/dashboard">
+                    <div class="sb-nav-link-icon">
+                        <i class="fas fa-tachometer-alt"></i>
+                    </div>
+                    Dashboard
+                </a>
+                <a class="nav-link" href="/notifications/list">
+                    <div class="sb-nav-link-icon">
+                        <i class="fas fa-bell"></i>
+                    </div>
+                    Mis Notificaciones
+                </a>
+                {{#admin}}
+                <a class="nav-link" href="/notifier">
+                    <div class="sb-nav-link-icon"><i class="fas fa-bullhorn"></i></div>
+                    Notificador
+                </a>
+                <a class="nav-link" href="/admin/candidates">
+                    <div class="sb-nav-link-icon"><i class="fas fa-users"></i></div>
+                    Candidatos
+                </a>
+                <a class="nav-link" href="/admin/recruiters">
+                    <div class="sb-nav-link-icon"><i class="fas fa-user-tie"></i></div>
+                    Reclutadores
+                </a>
+                <a class="nav-link" href="/jobs">
+                    <div class="sb-nav-link-icon"><i class="fas fa-suitcase"></i></div>
+                    Anuncios
+                </a>
+                {{/admin}}
+
+                {{#recruiter}}
+                <a class="nav-link" href="/jobs">
+                    <div class="sb-nav-link-icon"><i class="fas fa-suitcase"></i></div>
+                    Mis Anuncios
+                </a>
+                <a class="nav-link" href="/explore-jobrequests">
+                    <div class="sb-nav-link-icon"><i class="fas fa-address-card"></i></div>
+                    Postulaciones
+                </a>
+                {{/recruiter}}
+
+                {{#candidate}}
+                <a class="nav-link" href="/explore-jobs">
+                    <div class="sb-nav-link-icon"><i class="fas fa-search"></i></div>
+                    Explorar
+                </a>
+                <a class="nav-link" href="/jobrequests">
+                    <div class="sb-nav-link-icon"><i class="fas fa-address-card"></i></div>
+                    Mis Postulaciones
+                </a>
+                {{/candidate}}
+            </div>
+        </div>
+        <div class="sb-sidenav-footer">
+            <div class="small">Usuario actual:</div>
+            {{ currentUserName }}
+        </div>
+    </nav>
+</div>
