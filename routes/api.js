@@ -1,11 +1,13 @@
-const express = require('express');
-const path = require('path');
-const Auth = require('../services/AuthServices');
 const RecruitersController = require('../controllers/RecruitersController');
 const CandidatesController = require('../controllers/CandidatesController');
 const UsersController = require('../controllers/UsersController');
 const JobsController = require('../controllers/JobsController');
 const DashboardController = require('../controllers/DashboardController');
+
+const Auth = require('../services/AuthServices');
+
+const express = require('express');
+const path = require('path');
 const bodyParser = require('body-parser');
 const multer = require('multer');
 
@@ -23,21 +25,25 @@ var upload = multer({
 
 var router = express.Router();
 
-router.use(Auth.middleware.userIsLoggedIn);
+router.use('/api', Auth.middleware.userIsLoggedIn);
 
 //=============== Recruiters ===============
 
-router.get('/api/recruiters/all', Auth.middleware.userIsAdmin, RecruitersController.listAll);
+router.use('/api/recruiters', Auth.middleware.userIsAdmin);
 
-router.post('/api/recruiters/new', Auth.middleware.userIsAdmin, bodyParser.json(), RecruitersController.createNew);
+router.get('/api/recruiters/all', RecruitersController.listAll);
 
-router.delete('/api/recruiters/:username', Auth.middleware.userIsAdmin, RecruitersController.delete);
+router.post('/api/recruiters/new', bodyParser.json(), RecruitersController.createNew);
+
+router.delete('/api/recruiters/:username', RecruitersController.delete);
 
 //=============== Candidates ===============
 
-router.get('/api/candidates/all', Auth.middleware.userIsAdmin, CandidatesController.listAll);
+router.use('/api/candidates', Auth.middleware.userIsAdmin);
 
-router.delete('/api/candidates/:id', Auth.middleware.userIsAdmin, CandidatesController.delete);
+router.get('/api/candidates/all', CandidatesController.listAll);
+
+router.delete('/api/candidates/:id', CandidatesController.delete);
 
 //=============== Users ===============
 
@@ -77,9 +83,9 @@ router.post('/api/notifications/delete', bodyParser.json(), UsersController.dele
 
 router.post('/api/notifications/:id/mark', bodyParser.json(), UsersController.markNotification);
 
-router.post('/api/admin/notification/new', bodyParser.json(), UsersController.makeAdminNotification);
+router.post('/api/admin/notification/new', Auth.middleware.userIsAdmin,bodyParser.json(), UsersController.makeAdminNotification);
 
-router.get('/api/admin/notifications/sent', UsersController.getAdminNotifications);
+router.get('/api/admin/notifications/sent', Auth.middleware.userIsAdmin, UsersController.getAdminNotifications);
 
 //================ Statistics ==================
 

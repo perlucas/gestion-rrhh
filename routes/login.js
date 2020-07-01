@@ -1,12 +1,26 @@
-const express = require('express');
 const controller = require('../controllers/LoginController');
 
-var router = express.Router();
+const Configurator = require('./RouterConfigurator');
 
-router.get('/login', controller.show);
+const configs = {
+    routes: [
+        {
+            path: '/login',
+            method: 'get',
+            middleware: [controller.show]
+        },
+        {
+            path: '/login',
+            method: 'post',
+            middleware: [controller.doLogin]
+        },
+        {
+            path: '/logout',
+            method: 'get',
+            middleware: [controller.doLogout]
+        }
+    ],
+    all: []
+};
 
-router.post('/login', controller.doLogin);
-
-router.get('/logout', controller.doLogout);
-
-module.exports = router;
+module.exports = Configurator.configureRouter(configs);

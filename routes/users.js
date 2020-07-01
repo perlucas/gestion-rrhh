@@ -1,18 +1,53 @@
-const express = require('express');
 const UsersController = require('../controllers/UsersController');
 const AccountsController = require('../controllers/AccountsController');
+
 const Auth = require('../services/AuthServices');
 
-var router = express.Router();
+const Configurator = require('./RouterConfigurator');
 
-router.get('/users/edit/:id', Auth.middleware.userIsLoggedIn, UsersController.showUpdateForm);
+const configs = {
+    routes: [
+        {
+            path: '/users/edit/:id',
+            method: 'get',
+            middleware: [
+                Auth.middleware.userIsLoggedIn,
+                UsersController.showUpdateForm
+            ]
+        },
+        {
+            path: '/register',
+            method: 'get',
+            middleware: [
+                AccountsController.showRegisterForm
+            ]
+        },
+        {
+            path: '/register',
+            method: 'post',
+            middleware: [
+                AccountsController.registerUser
+            ]
+        },
+        {
+            path: '/notifications/list',
+            method: 'get',
+            middleware: [
+                Auth.middleware.userIsLoggedIn, 
+                UsersController.showNotificationsList
+            ]
+        },
+        {
+            path: '/notifier',
+            method: 'get',
+            middleware: [
+                Auth.middleware.userIsLoggedIn, 
+                Auth.middleware.userIsAdmin, 
+                UsersController.showNotifier
+            ]
+        }
+    ],
+    all: []
+};
 
-router.get('/register', AccountsController.showRegisterForm);
-
-router.post('/register', AccountsController.registerUser);
-
-router.get('/notifications/list', Auth.middleware.userIsLoggedIn, UsersController.showNotificationsList);
-
-router.get('/notifier', Auth.middleware.userIsLoggedIn, Auth.middleware.userIsAdmin, UsersController.showNotifier);
-
-module.exports = router;
+module.exports = Configurator.configureRouter(configs);

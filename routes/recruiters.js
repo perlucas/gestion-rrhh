@@ -1,11 +1,31 @@
-const express = require('express');
 const controller = require('../controllers/RecruitersController');
+
 const Auth = require('../services/AuthServices');
 
-var router = express.Router();
+const Configurator = require('./RouterConfigurator');
 
-router.get('/admin/recruiters', Auth.middleware.userIsLoggedIn, Auth.middleware.userIsAdmin, controller.admin);
+const configs = {
+    routes: [
+        {
+            path: '/admin/recruiters',
+            method: 'get',
+            middleware: [
+                Auth.middleware.userIsAdmin, 
+                controller.admin
+            ]
+        },
+        {
+            path: '/explore-jobrequests',
+            method: 'get',
+            middleware: [
+                Auth.middleware.userIsRecruiter, 
+                controller.showRequests
+            ]
+        }
+    ],
+    all: [
+        Auth.middleware.userIsLoggedIn
+    ]
+};
 
-router.get('/explore-jobrequests', Auth.middleware.userIsLoggedIn, Auth.middleware.userIsRecruiter, controller.showRequests);
-
-module.exports = router;
+module.exports = Configurator.configureRouter(configs);

@@ -1,29 +1,48 @@
-const express = require('express');
 const JobsController = require('../controllers/JobsController');
+
 const Auth = require('../services/AuthServices');
 
-var router = express.Router();
+const configurator = require('./RouterConfigurator');
 
-router.use(Auth.middleware.userIsLoggedIn);
+const routerConfig = {
+    routes: [
+        {
+            path: '/jobs',
+            method: 'get',
+            middleware: [
+                Auth.middleware.userIsNotCandidate,
+                JobsController.listAll
+            ]
+        },
+        {
+            path: '/recruiter/jobs/edit/:id',
+            method: 'get',
+            middleware: [
+                Auth.middleware.userIsNotCandidate,
+                JobsController.showEditForm
+            ]
+        },
+        {
+            path: '/explore-jobs',
+            method: 'get',
+            middleware: [
+                Auth.middleware.userIsCandidate,
+                JobsController.showExplore
+            ]
+        },
+        {
+            path: '/jobs/request/:id',
+            method: 'get',
+            middleware: [
+                Auth.middleware.userIsCandidate,
+                JobsController.showJobRequestForm
+            ]
+        }
+    ],
 
-router.get('/jobs',
-    Auth.middleware.userIsNotCandidate, 
-    JobsController.listAll
-);
+    all: [
+        Auth.middleware.userIsLoggedIn
+    ]
+};
 
-router.get('/recruiter/jobs/edit/:id',
-    Auth.middleware.userIsNotCandidate,
-    JobsController.showEditForm
-);
-
-router.get('/explore-jobs',
-    Auth.middleware.userIsCandidate,
-    JobsController.showExplore
-);
-
-router.get('/jobs/request/:id',
-    Auth.middleware.userIsCandidate,
-    JobsController.showJobRequestForm
-);
-
-module.exports = router;
+module.exports = configurator.configureRouter(routerConfig);

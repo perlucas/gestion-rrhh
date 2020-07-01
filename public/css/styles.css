@@ -10216,3 +10216,13 @@ body {
 .notification-link, .notification-link:hover {
   color: inherit;
 }
+
+.home-image-container {
+  width: 100vw;
+  height: 95vh;
+  padding: 0;
+  background-image: url("/img/home.jpg");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+

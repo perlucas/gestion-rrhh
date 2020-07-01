@@ -95,4 +95,6 @@ app.use(require('./routes/api'));
 
 app.use(require('./routes/downloads'));
 
+app.use(require('./routes/home'));
+
 app.listen(80);
